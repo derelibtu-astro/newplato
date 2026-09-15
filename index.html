@@ -1,1 +1,225 @@
+<!-- FOTOBAHAR PLATO / SAFE V3 PATCH -->
+<style>
+/* Mevcut tasarımı BOZMAZ.
+   Sadece Auto Tour sırasında aktif fotoğrafı ve aktif alanı hafif öne çıkarır. */
 
+.thumb {
+  transition:
+    transform .55s cubic-bezier(.2,.8,.2,1),
+    box-shadow .55s ease,
+    border-color .55s ease !important;
+  transform-origin:center center;
+}
+
+.thumb:hover {
+  transform:scale(1.025);
+  z-index:4;
+}
+
+body.autoplaying .thumb.active {
+  transform:scale(1.055);
+  z-index:5;
+  border-color:rgba(215,187,133,.75) !important;
+  box-shadow:
+    0 18px 45px rgba(0,0,0,.35),
+    0 0 0 1px rgba(215,187,133,.18);
+}
+
+body.autoplaying .sceneCard.active {
+  transform:translateY(-2px) scale(1.012);
+  box-shadow:0 14px 35px rgba(0,0,0,.22);
+}
+
+.sceneCard {
+  transition:
+    transform .5s cubic-bezier(.2,.8,.2,1),
+    box-shadow .5s ease !important;
+}
+</style>
+
+<script>
+(() => {
+
+  /* Orijinal site hazır değilse hiçbir şeye dokunma */
+  if (
+    typeof SCENES === "undefined" ||
+    typeof state === "undefined" ||
+    typeof render !== "function"
+  ) {
+    console.warn("Fotobahar patch: ana site bulunamadı.");
+    return;
+  }
+
+  /*
+   * SADECE içerik değişiyor.
+   * Tasarım / Auto Tour / harita / butonlar aynen korunuyor.
+   *
+   * Türbanlı modelin bulunduğu bilinmeyen eski kare
+   * bu whitelist dışında kaldığı için artık turda kullanılmayacak.
+   */
+
+  const SAFE_SCENES = {
+
+    "palmiye": {
+      title: "Palmiye Yolu",
+      subtitle: "İlk izlenim daha kapıdan girerken başlar",
+      blurb:
+        "Ritmik palmiyeler, desenli yol ve uzun perspektif. " +
+        "Çift içeri girdiği anda kadraj zaten hazır; " +
+        "burası Fotobahar’ın açılış sahnesi.",
+      tags: ["İkonik Aks", "Editorial", "Giriş Sahnesi"],
+      cover: "walkway_aerial",
+      overview: "walkway_aerial",
+      frames: [
+        "walkway_aerial",
+        "walkway_couple_drone",
+        "mustang_palm",
+        "steppers_couple"
+      ]
+    },
+
+    "sunset-platform": {
+      title: "Gün Batımı Platformu",
+      subtitle: "Günün son ışığı bazen en güçlü dekor olur",
+      blurb:
+        "Minimal beyaz sahne geri çekilir, ışık öne çıkar. " +
+        "Flare, uzun gölgeler ve sıcak tonlarla birkaç dakikalık " +
+        "ışığı zamansız bir sahneye dönüştürüyoruz.",
+      tags: ["Golden Hour", "Minimal", "Cinematic"],
+      cover: "sunset_stage",
+      overview: "sunset_stage",
+      frames: [
+        "sunset_stage",
+        "pool_pots_sunset",
+        "lawn_walk"
+      ]
+    },
+
+    "nikah-bahcesi": {
+      title: "Nikah Bahçesi",
+      subtitle: "Sadece dekor değil; o günün bütün atmosferi",
+      blurb:
+        "Çim alan, beyaz seremonik kurgu ve doğal yeşil doku. " +
+        "Nikah anından portrelere kadar aynı alan " +
+        "farklı hikâyelere dönüşebiliyor.",
+      tags: ["Nikah", "Event", "Açık Hava"],
+      cover: "ceremony",
+      overview: "wedding_aerial",
+      frames: [
+        "ceremony",
+        "wedding_aerial",
+        "bridge_walk",
+        "forest_lawn"
+      ]
+    },
+
+    "beyaz-kemer": {
+      title: "Beyaz Kemer & Havuz",
+      subtitle: "Beyaz, su ve gölge. Fazlasına ihtiyaç yok",
+      blurb:
+        "Temiz mimari çizgiler ve su yansıması fotoğrafa " +
+        "lüks bir sadelik katıyor. Gün ışığında minimal, " +
+        "gün batımında çok daha sinematik.",
+      tags: ["Santorini", "Luxury", "Clean Lines"],
+      cover: "pool_reflection",
+      overview: "pool_reflection",
+
+      /* TÜR­BANLI MODEL YOK */
+      frames: [
+        "pool_reflection",
+        "stairs_bride",
+        "pool_red",
+        "pool_pots_sunset"
+      ]
+    },
+
+    "orange-house": {
+      title: "Turuncu Ev & Renkli Köşe",
+      subtitle: "Kuralları biraz bozduğumuz yer",
+      blurb:
+        "Sıcak cephe rengi, sert güneş ve güçlü kontrast. " +
+        "Daha moda, daha enerjik ve klasik düğün fotoğrafından " +
+        "bilinçli biçimde uzaklaşan bir sahne.",
+      tags: ["Color Story", "Warm Tones", "Fashion"],
+      cover: "orange_wall",
+      overview: "orange_wall",
+      frames: [
+        "orange_wall",
+        "patio_walk",
+        "sunset_stage"
+      ]
+    },
+
+    "cesme": {
+      title: "Çeşme & Taş Alan",
+      subtitle: "Heykelsi. Parlak. Tek bakışta hatırlanır",
+      blurb:
+        "Beyaz taş yüzey ve güçlü heykelsi form. " +
+        "Fotoğrafı kalabalıklaştırmadan mekânın kendisini " +
+        "karaktere dönüştüren bir çekim noktası.",
+      tags: ["Fountain", "Fine Art", "Bright Set"],
+      cover: "fountain_kiss",
+      overview: "fountain_kiss",
+      frames: [
+        "fountain_kiss",
+        "pool_pots_sunset",
+        "walkway_aerial"
+      ]
+    },
+
+    "villa-doga": {
+      title: "Villa & Doğa",
+      subtitle: "Platonun nefes aldığı bölüm",
+      blurb:
+        "Geniş çim, olgun ağaçlar ve villa dokusu. " +
+        "Daha sakin, daha doğal ve mekânın gerçek ölçeğini " +
+        "hissettiren uzun hikâye kareleri için.",
+      tags: ["Estate", "Nature", "Storytelling"],
+      cover: "villa_aerial",
+      overview: "villa_aerial",
+      frames: [
+        "villa_aerial",
+        "lawn_walk",
+        "forest_lawn",
+        "bridge_walk"
+      ]
+    },
+
+    "mustang-lawn": {
+      title: "Mustang Lawn",
+      subtitle: "Klasik otomobil. Modern kadraj",
+      blurb:
+        "Klasik otomobilin karakteri açık çim ve palmiye aksıyla " +
+        "birleşiyor. Biraz retro, biraz editorial; " +
+        "her karede güçlü bir hikâye hissi.",
+      tags: ["Mustang", "Classic", "Cinematic"],
+      cover: "mustang_lawn",
+      overview: "mustang_lawn",
+      frames: [
+        "mustang_lawn",
+        "mustang_palm",
+        "steppers_couple"
+      ]
+    }
+  };
+
+  SCENES.forEach(scene => {
+    const patch = SAFE_SCENES[scene.slug];
+    if (!patch) return;
+    Object.assign(scene, patch);
+  });
+
+  /* Eğer kaldırdığımız fotoğraf açık durumdaysa Frame 1'e dön */
+  if (state.scene >= SCENES.length) state.scene = 0;
+
+  if (state.frame >= SCENES[state.scene].frames.length) {
+    state.frame = 0;
+  }
+
+  /* Mevcut tasarımı yeniden çiz */
+  render();
+
+  console.log("Fotobahar Plato Safe Patch aktif.");
+})();
+</script>
+<!-- /FOTOBAHAR PLATO SAFE V3 PATCH -->
